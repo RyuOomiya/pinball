@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-public class GameManager : MonoBehaviour
+public class GameManager : HighScoreBase
 {
     [SerializeField] Block[] blocks;
     [SerializeField] GameObject gameOverUI;
@@ -18,32 +18,87 @@ public class GameManager : MonoBehaviour
     [SerializeField] ParticleSystem particle3;
     [SerializeField] private AudioSource b1;
     [SerializeField] private AudioSource b2;
+    [SerializeField] Text clearTimeText;
+    [SerializeField] GameObject leftTimerUI;
+    int stopTimer = 1;
+    [Tooltip("制限時間")] float leftTimer = 60.0f;
     AudioSource audio1;
+    private Text texLeft;
+    private Text texCT;
+    private GameObject leftObj;
     private bool isGameClear = false;
+    public float clearTime;
 
-    // Start is called before the first frame update
-    void Start()
+    /// <summary>/// シーン管理/// </summary>
+    public enum MyScene
     {
-        audio1 = gameObject.GetComponent<AudioSource>();
-        Invoke(nameof(DelayMethod), 2f);
+        Title,
+        game1_1,
+        game1_2,
+        game1_3
+    }
+    [Tooltip("現在アクティブなシーン")]
+    public MyScene nowScene;
+
+    static Dictionary<string, MyScene> sceneDic = new Dictionary<string, MyScene>
+    {
+        {"Title" , MyScene.Title},
+        {"game1-1" , MyScene.game1_1},
+        {"game1-2" , MyScene.game1_2},
+        {"game1-3" , MyScene.game1_3}
+    };
+    /// <summary>
+    /// 今アクティブなシーンの名前をもってきてDictionaryのKeyとして使いnowSceneに渡す
+    /// </summary>
+    /// <returns>今アクティブなシーンを返す</returns>
+    public MyScene MyGetScene()
+    {
+        string sceneName = SceneManager.GetActiveScene().name;
+        nowScene = sceneDic[sceneName];
+        return nowScene;
     }
 
-        void DelayMethod()
+    void Start()
+    {
+        leftObj = GameObject.Find("LeftTimer");
+        texLeft = leftObj.GetComponent<Text>();
+        audio1 = gameObject.GetComponent<AudioSource>();
+        Invoke(nameof(DelayUIMethod), 1f);
+    }
+
+    void DelayUIMethod()
     {
         stage1UI.SetActive(false);
     }
 
-
     // Update is called once per frame
-    private void Update()
-    { 
+    void Update()
+    {
+        //タイマー処理
+        if (Ball.stop)
+        {
+            leftTimer -= Time.deltaTime * stopTimer;
+            texLeft.text = "Time :" + leftTimer.ToString("0.00");
+            if (leftTimer < 0)
+            {
+                GameOver();
+                stopTimer = 0;
+                leftTimerUI.SetActive(false);
+            }
+
+        }
 
         if (isGameClear != true)
         {
             if (DestroyAllBlocks())
             {
                 //ゲームクリア
-                gameClearUI.SetActive(true);               
+                clearTime = leftTimer;
+                leftTimerUI.SetActive(false);
+                stopTimer = 0;
+                texCT = clearTimeText.GetComponent<Text>();
+                texCT.text = "Clear Time : " + leftTimer.ToString("0.00");
+                gameClearUI.SetActive(true);
                 isGameClear = true;
                 particle.Play();
                 particle2.Play();
@@ -55,13 +110,12 @@ public class GameManager : MonoBehaviour
                 ball.SetActive(false);
             }
         }
-         
-        
+
     }
-    
-    private bool DestroyAllBlocks() 
+   
+    private bool DestroyAllBlocks()
     {
-        foreach(Block b in blocks)
+        foreach (Block b in blocks)
         {
             if (b != null)
             {
@@ -79,62 +133,66 @@ public class GameManager : MonoBehaviour
         b1.PlayOneShot(a2);
     }
 
-    
-    public void GameRetry1()
+    /// <summary>
+    /// リトライのためにシーンを再読み込み
+    /// </summary>
+    private void GameRetry()
     {
-          SceneManager.LoadScene("game1-1");
+        Ball.stop = false;
+        int nowScene = SceneManager.GetActiveScene().buildIndex;
+        SceneManager.LoadScene(nowScene);
+    }
+    /// <summary>
+    /// ボタンのSEを鳴らすために実行を遅らせる
+    /// </summary>
+    public void DelayRetryMethod()
+    {
+        Invoke(nameof(GameRetry), 1f);
     }
 
-    public void RetrySE1()
+    private void NextScene()
     {
-        Invoke(nameof(GameRetry1), 1f);
-        
+        MyGetScene();
+        Ball.stop = false;
+        var nextScene = (int)nowScene + 1;
+        int allSceneCount = SceneManager.sceneCountInBuildSettings;
+        if (nextScene < allSceneCount)
+        {
+            SceneManager.LoadScene(nextScene);
+        }
     }
 
-    private void GameRetry2()
+    public void DelayNextMethod()
     {
-       
-        SceneManager.LoadScene("game1-2");
+        Invoke(nameof(NextScene), 1f);
     }
-    public void RetrySE2()
-    {
-        Invoke(nameof(GameRetry2), 1f);
-    }
-
-    void GameRetry3()
-    {
-        SceneManager.LoadScene("game1-3");
-    }
-
-    public void RetrySE3()
-    {
-        Invoke(nameof(GameRetry3), 1f);
-    }
-
     private void NextGame1()
     {
-        SceneManager.LoadScene("game1-2");
+        Ball.stop = false;
+        SceneManager.LoadScene(2);
     }
 
     public void NextSE1()
     {
-       
+
         Invoke(nameof(NextGame1), 1f);
 
     }
 
     private void NextGame2()
     {
-        SceneManager.LoadScene("game1-3");
+        Ball.stop = false;
+        SceneManager.LoadScene(3);
     }
 
     public void NextSE2()
     {
-        Invoke(nameof(NextGame2), 1f); 
+        Invoke(nameof(NextGame2), 1f);
     }
     private void GameTitle()
     {
-        SceneManager.LoadScene("Title");
+        Ball.stop = false;
+        SceneManager.LoadScene(0);
     }
 
     public void ReturnTitle1()

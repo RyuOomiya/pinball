@@ -15,19 +15,22 @@ public class Ball : MonoBehaviour
     private Text tex;
     private Text tex2;
     int seconds;
-    private bool stop = false;
+    static public bool stop = false;
     private bool start = false;
-   // private Rigidbody myRigid;
-    // Start is called before the first frame update
+ 
+   
     void Start()
     {
+       ;
         timeObj = GameObject.Find("TimerText");
         startObj = GameObject.Find("StartText");
         tex = timeObj.GetComponent<Text>();
         tex2 = startObj.GetComponent<Text>();
         
+
     }
 
+    
     // Update is called once per frame
     void Update()
     {
@@ -52,7 +55,6 @@ public class Ball : MonoBehaviour
         if (timer < 1 && !stop) //timer‚ª1‚É‚È‚é‚©‚Âstop‚ªfalse‚ÌŽž
         {
             this.GetComponent<Rigidbody>().AddForce(-speed, 0f, -speed, ForceMode.VelocityChange);
-           
             stop = true;
         }
     }
